@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunka26_1_r1=self.webpackChunka26_1_r1||[]).push([["792"],{5123(a){a.exports=JSON.parse('{"metadata":{"permalink":"/a26-1r1/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
