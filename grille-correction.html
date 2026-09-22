@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Grille de correction — Assemblage</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card-bg: #ffffff;
+    --text: #1a1d23;
+    --text-muted: #5b6270;
+    --border: #dfe2e8;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --bad-bg: #fef2f2;
+    --penalty-bg: #fff7ed;
+    --penalty-border: #fed7aa;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d;
+      --card-bg: #1f232b;
+      --text: #eef0f3;
+      --text-muted: #9aa2b1;
+      --border: #333844;
+      --accent: #4f8cff;
+      --ok: #34d17a;
+      --warn: #f0a832;
+      --bad: #f0584f;
+      --bad-bg: #2a1817;
+      --penalty-bg: #2a2115;
+      --penalty-border: #4a3820;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    touch-action: manipulation;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 16px 16px 8px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 1.25rem;
+    margin: 0 0 4px;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  main {
+    padding: 8px 16px 96px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .critere {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .critere-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .critere-header h2 {
+    font-size: 1.02rem;
+    margin: 0;
+  }
+  .critere-score {
+    font-size: 1.15rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .critere-score .score-ok { color: var(--ok); }
+  .critere-score .score-warn { color: var(--warn); }
+  .critere-score .score-bad { color: var(--bad); }
+
+  .item-list {
+    padding: 4px 0;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.98rem;
+    line-height: 1.35;
+    user-select: none;
+  }
+  .item:last-child { border-bottom: none; }
+  label.item { cursor: pointer; }
+  label.item:active { background: rgba(37, 99, 235, 0.07); }
+
+  label.item input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    transform: scale(1.4);
+    accent-color: var(--accent);
+  }
+
+  .counter-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .counter-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .counter-btn:active { background: var(--border); }
+  .counter-value {
+    min-width: 28px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .counter-value--nonzero { color: var(--bad); }
+
+  .penalite-row {
+    background: var(--penalty-bg);
+    border-top: 1px solid var(--penalty-border);
+  }
+  .penalite-row label.item {
+    border-bottom: none;
+  }
+  .penalite-row .item-text {
+    color: var(--bad);
+  }
+
+  .bloc-penalites {
+    background: var(--card-bg);
+    border: 1px solid var(--penalty-border);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .bloc-penalites .critere-header {
+    background: var(--penalty-bg);
+  }
+  .penalite-sub {
+    padding: 10px 16px 2px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  .item-text { flex: 1; min-width: 0; }
+  .item-badge {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .totalbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 10;
+  }
+  .totalbar .total-label {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+  .totalbar .total-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .totalbar .clear-btn {
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .totalbar .clear-btn:active { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Grille de correction — Assemblage</h1>
+  <p>Partie assemblage — 18 points</p>
+</header>
+
+<main id="app"></main>
+
+<div class="totalbar">
+  <div>
+    <div class="total-label">Total</div>
+    <div class="total-value" id="total-value">18 / 18</div>
+  </div>
+  <button class="clear-btn" id="clear-btn" type="button">Effacer</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- Données du barème ------------------------------------------------
+
+  const CRITERES = [
+    {
+      id: "pieces",
+      titre: "Utilisation des bonnes pièces",
+      max: 6,
+      saisie: "compteurs",
+      items: ["Pièce manquante", "Mauvaise pièce", "Pièce en trop"],
+      bareme: [6, 4.5, 3, 1.5, 0],
+      penalite: { label: "Mauvais modèle de l'ordinateur", points: 3 }
+    },
+    {
+      id: "ports",
+      titre: "Utilisation des bons ports et pièces fonctionnelles",
+      max: 6,
+      saisie: "compteurs",
+      items: [
+        "Mauvais port pour un périphérique SATA",
+        "Mauvais port pour un périphérique PCI/PCIe",
+        "Mauvais type de câble SATA de données — disque interne (90°)",
+        "Mauvais type de câble SATA de données — disque interne (plat)",
+        "Pièce non fonctionnelle ou non détectée"
+      ],
+      bareme: [6, 4.5, 3, 1.5, 0],
+      penalite: { label: "Ordinateur qui ne démarre pas", points: 3 }
+    },
+    {
+      id: "qualitatif",
+      titre: "Éléments qualitatifs",
+      max: 3,
+      saisie: "cases",
+      items: [
+        "Mauvaise couleur de câble SATA de données",
+        "Mauvais emplacement physique du disque interne (haut / bas)",
+        "Mauvais emplacement du cadre avant (haut / bas)",
+        "Protecteurs du cadre avant mal installés",
+        "Cadre avant mal installé",
+        "Protecteurs PCI/PCIe mal installés",
+        "Câble mal sécurisé",
+        "Vis manquante"
+      ],
+      bareme: [3, 2.5, 2, 1.5, 1, 0.5, 0]
+    }
+  ];
+
+  const RAM = {
+    id: "ram",
+    titre: "Mémoire vive",
+    max: 3,
+    items: [
+      "Configuration valide",
+      "Capacité totale demandée respectée",
+      "Demandes spécifiques respectées"
+    ]
+  };
+
+  const PENALITES_GLOBALES = [
+    {
+      id: "bracelet",
+      titre: "Bracelet anti-statique",
+      points: 0.5,
+      type: "checkbox",
+      label: "2 pièces ou plus installées sans le bracelet anti-statique"
+    },
+    {
+      id: "manipulation",
+      titre: "Protection et manipulation des pièces",
+      points: 0.5,
+      type: "seuil",
+      seuil: 2,
+      note: "-0,5 point si 2 erreurs ou plus sont observées",
+      items: [
+        "Pièce qui tombe par une mauvaise gestion de l'espace",
+        "Pyramide de pièces",
+        "Boîtier de l'ordinateur déposé sur une pièce",
+        "Boîtier déposé sur la table sur le devant ou le derrière (ports et connecteurs)",
+        "Ouverture du capot alors que l'ordinateur est branché à des périphériques ou à l'alimentation"
+      ]
+    }
+  ];
+
+  const TOTAL_MAX = CRITERES.reduce((s, c) => s + c.max, 0) + RAM.max; // 18
+
+  // --- Construction du DOM ----------------------------------------------
+
+  const app = document.getElementById("app");
+
+  function buildCritere(c) {
+    const section = document.createElement("section");
+    section.className = "critere";
+    section.dataset.critere = c.id;
+
+    const header = document.createElement("div");
+    header.className = "critere-header";
+    header.innerHTML =
+      "<h2>" + c.titre + " <span style='color:var(--text-muted);font-weight:400;font-size:0.85em;'>(" + c.max + " pts)</span></h2>" +
+      "<div class='critere-score' data-score-for='" + c.id + "'>" + c.max + " / " + c.max + "</div>";
+    section.appendChild(header);
+
+    const list = document.createElement("div");
+    list.className = "item-list";
+
+    if (c.saisie === "compteurs") {
+      c.items.forEach((text, i) => {
+        const row = document.createElement("div");
+        row.className = "item item-counter";
+        row.innerHTML =
+          "<span class='item-text'>" + text + "</span>" +
+          "<div class='counter-controls'>" +
+          "<button type='button' class='counter-btn' data-role='dec-item' data-critere='" + c.id + "' data-index='" + i + "'>−</button>" +
+          "<span class='counter-value' data-role='item-counter-value' data-critere='" + c.id + "' data-index='" + i + "'>0</span>" +
+          "<button type='button' class='counter-btn' data-role='inc-item' data-critere='" + c.id + "' data-index='" + i + "'>+</button>" +
+          "</div>";
+        list.appendChild(row);
+      });
+    } else {
+      c.items.forEach((text, i) => {
+        const lbl = document.createElement("label");
+        lbl.className = "item";
+        lbl.innerHTML =
+          "<input type='checkbox' data-critere='" + c.id + "' data-role='item' data-index='" + i + "'>" +
+          "<span class='item-text'>" + text + "</span>";
+        list.appendChild(lbl);
+      });
+    }
+
+    section.appendChild(list);
+
+    if (c.penalite) {
+      const penRow = document.createElement("div");
+      penRow.className = "penalite-row";
+      const lbl = document.createElement("label");
+      lbl.className = "item";
+      lbl.innerHTML =
+        "<input type='checkbox' data-critere='" + c.id + "' data-role='penalite'>" +
+        "<span class='item-text'>" + c.penalite.label + "</span>" +
+        "<span class='item-badge'>−" + c.penalite.points + " pt</span>";
+      penRow.appendChild(lbl);
+      section.appendChild(penRow);
+    }
+
+    app.appendChild(section);
+  }
+
+  function buildRam(r) {
+    const section = document.createElement("section");
+    section.className = "critere";
+    section.dataset.critere = r.id;
+
+    const header = document.createElement("div");
+    header.className = "critere-header";
+    header.innerHTML =
+      "<h2>" + r.titre + " <span style='color:var(--text-muted);font-weight:400;font-size:0.85em;'>(" + r.max + " pts)</span></h2>" +
+      "<div class='critere-score' data-score-for='" + r.id + "'>" + r.max + " / " + r.max + "</div>";
+    section.appendChild(header);
+
+    const list = document.createElement("div");
+    list.className = "item-list";
+
+    r.items.forEach((text, i) => {
+      const lbl = document.createElement("label");
+      lbl.className = "item";
+      lbl.innerHTML =
+        "<input type='checkbox' data-critere='" + r.id + "' data-role='ram-item' data-index='" + i + "'>" +
+        "<span class='item-text'>" + text + "</span>";
+      list.appendChild(lbl);
+    });
+
+    section.appendChild(list);
+    app.appendChild(section);
+  }
+
+  function buildPenalites(list) {
+    const section = document.createElement("section");
+    section.className = "bloc-penalites";
+    section.dataset.critere = "global";
+
+    const header = document.createElement("div");
+    header.className = "critere-header";
+    header.innerHTML =
+      "<h2>Pénalités générales</h2>" +
+      "<div class='critere-score' data-score-for='global-penalites'>−0 pt</div>";
+    section.appendChild(header);
+
+    list.forEach((p) => {
+      if (p.type === "checkbox") {
+        const sub = document.createElement("div");
+        sub.className = "item-list";
+        const lbl = document.createElement("label");
+        lbl.className = "item";
+        lbl.innerHTML =
+          "<input type='checkbox' data-penalite='" + p.id + "' data-role='penalite-checkbox'>" +
+          "<span class='item-text'>" + p.label + "</span>" +
+          "<span class='item-badge'>−" + p.points + " pt</span>";
+        sub.appendChild(lbl);
+        section.appendChild(sub);
+      } else if (p.type === "seuil") {
+        const noteEl = document.createElement("div");
+        noteEl.className = "penalite-sub";
+        noteEl.textContent = p.titre + " — " + p.note;
+        section.appendChild(noteEl);
+
+        const sub = document.createElement("div");
+        sub.className = "item-list";
+        p.items.forEach((text, i) => {
+          const lbl = document.createElement("label");
+          lbl.className = "item";
+          lbl.innerHTML =
+            "<input type='checkbox' data-penalite='" + p.id + "' data-role='penalite-seuil-item' data-index='" + i + "'>" +
+            "<span class='item-text'>" + text + "</span>";
+          sub.appendChild(lbl);
+        });
+        section.appendChild(sub);
+      }
+    });
+
+    app.appendChild(section);
+  }
+
+  CRITERES.forEach(buildCritere);
+  buildRam(RAM);
+  buildPenalites(PENALITES_GLOBALES);
+
+  // --- Calcul -------------------------------------------------------------
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function scoreClass(points, max) {
+    const ratio = max > 0 ? points / max : 1;
+    if (ratio >= 0.99) return "score-ok";
+    if (ratio >= 0.5) return "score-warn";
+    return "score-bad";
+  }
+
+  function formatPts(n) {
+    // Affiche sans décimale inutile (3 au lieu de 3.0, 1.5 reste 1.5)
+    const rounded = Math.round(n * 100) / 100;
+    return rounded % 1 === 0 ? String(rounded) : String(rounded);
+  }
+
+  function calculer() {
+    let total = 0;
+
+    CRITERES.forEach((c) => {
+      const section = app.querySelector("[data-critere='" + c.id + "']");
+      let erreurs;
+
+      if (c.saisie === "compteurs") {
+        erreurs = 0;
+        c.items.forEach((_, i) => {
+          const valEl = section.querySelector("[data-role='item-counter-value'][data-index='" + i + "']");
+          const val = parseInt(valEl.textContent, 10) || 0;
+          erreurs += val;
+          valEl.classList.toggle("counter-value--nonzero", val > 0);
+        });
+      } else {
+        erreurs = section.querySelectorAll("[data-role='item']:checked").length;
+      }
+
+      const idx = clamp(erreurs, 0, c.bareme.length - 1);
+      let points = c.bareme[idx];
+
+      if (c.penalite) {
+        const penChecked = section.querySelector("[data-role='penalite']:checked");
+        if (penChecked) points -= c.penalite.points;
+      }
+      points = clamp(points, 0, c.max);
+
+      const scoreEl = section.querySelector("[data-score-for='" + c.id + "']");
+      scoreEl.textContent = formatPts(points) + " / " + c.max;
+      scoreEl.className = "critere-score " + scoreClass(points, c.max);
+
+      total += points;
+    });
+
+    // Mémoire vive
+    (function () {
+      const section = app.querySelector("[data-critere='" + RAM.id + "']");
+      const checks = section.querySelectorAll("[data-role='ram-item']");
+      const configValide = checks[0].checked;
+      const capaciteOk = checks[1].checked;
+      const demandesOk = checks[2].checked;
+
+      let points;
+      if (configValide && capaciteOk && demandesOk) {
+        points = 3;
+      } else if (configValide || capaciteOk) {
+        points = 1;
+      } else {
+        points = 0;
+      }
+
+      const scoreEl = section.querySelector("[data-score-for='" + RAM.id + "']");
+      scoreEl.textContent = formatPts(points) + " / " + RAM.max;
+      scoreEl.className = "critere-score " + scoreClass(points, RAM.max);
+
+      total += points;
+    })();
+
+    // Pénalités globales
+    let penaliteGlobale = 0;
+    PENALITES_GLOBALES.forEach((p) => {
+      if (p.type === "checkbox") {
+        const el = app.querySelector("[data-penalite='" + p.id + "'][data-role='penalite-checkbox']");
+        if (el && el.checked) penaliteGlobale += p.points;
+      } else if (p.type === "seuil") {
+        const checks = app.querySelectorAll("[data-penalite='" + p.id + "'][data-role='penalite-seuil-item']:checked");
+        if (checks.length >= p.seuil) penaliteGlobale += p.points;
+      }
+    });
+
+    const globalScoreEl = app.querySelector("[data-score-for='global-penalites']");
+    globalScoreEl.textContent = "−" + formatPts(penaliteGlobale) + " pt";
+    globalScoreEl.className = "critere-score " + (penaliteGlobale > 0 ? "score-bad" : "score-ok");
+
+    total = clamp(total - penaliteGlobale, 0, TOTAL_MAX);
+
+    const totalEl = document.getElementById("total-value");
+    totalEl.textContent = formatPts(total) + " / " + TOTAL_MAX;
+    totalEl.style.color =
+      total >= TOTAL_MAX * 0.99 ? "var(--ok)" :
+      total >= TOTAL_MAX * 0.5 ? "var(--warn)" : "var(--bad)";
+  }
+
+  // --- Écouteurs ------------------------------------------------------------
+
+  app.addEventListener("change", calculer);
+
+  app.addEventListener("click", function (e) {
+    const btn = e.target.closest(".counter-btn");
+    if (!btn) return;
+    const role = btn.dataset.role;
+    if (role !== "inc-item" && role !== "dec-item") return;
+    const critereId = btn.dataset.critere;
+    const index = btn.dataset.index;
+    const valueEl = app.querySelector(
+      "[data-role='item-counter-value'][data-critere='" + critereId + "'][data-index='" + index + "']"
+    );
+    let val = parseInt(valueEl.textContent, 10) || 0;
+    if (role === "inc-item") val += 1;
+    if (role === "dec-item") val = Math.max(0, val - 1);
+    valueEl.textContent = String(val);
+    calculer();
+  });
+
+  document.getElementById("clear-btn").addEventListener("click", function () {
+    if (!confirm("Effacer toute la correction en cours ?")) return;
+    app.querySelectorAll("input[type='checkbox']").forEach((cb) => { cb.checked = false; });
+    app.querySelectorAll("[data-role='item-counter-value']").forEach((el) => { el.textContent = "0"; });
+    calculer();
+  });
+
+  calculer();
+})();
+</script>
+
+</body>
+</html>
