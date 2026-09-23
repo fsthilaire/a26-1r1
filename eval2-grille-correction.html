@@ -16,6 +16,8 @@
     --warn: #d97706;
     --bad: #dc2626;
     --bad-bg: #fef2f2;
+    --grade-yellow: #7fae0a;
+    --grade-orange: #e69500;
     --penalty-bg: #fff7ed;
     --penalty-border: #fed7aa;
     --shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -32,6 +34,8 @@
       --warn: #f0a832;
       --bad: #f0584f;
       --bad-bg: #2a1817;
+      --grade-yellow: #b5e02a;
+      --grade-orange: #ffb020;
       --penalty-bg: #2a2115;
       --penalty-border: #4a3820;
       --shadow: 0 1px 3px rgba(0,0,0,0.4);
@@ -213,6 +217,16 @@
     font-size: 1.6rem;
     font-weight: 800;
   }
+  .totalbar .total-percent {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .totalbar .total-mention {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-left: 6px;
+  }
   .totalbar .clear-btn {
     padding: 12px 18px;
     border-radius: 10px;
@@ -230,7 +244,7 @@
 
 <header>
   <h1>Grille de correction — Assemblage</h1>
-  <p>Partie assemblage — 18 points</p>
+  <p>Partie assemblage — 20 points</p>
 </header>
 
 <main id="app"></main>
@@ -238,7 +252,7 @@
 <div class="totalbar">
   <div>
     <div class="total-label">Total</div>
-    <div class="total-value" id="total-value">18 / 18</div>
+    <div class="total-value" id="total-value"><span id="total-main">20 / 20</span> <span class="total-percent" id="total-percent">100.0 %</span><span class="total-mention" id="total-mention"></span></div>
   </div>
   <button class="clear-btn" id="clear-btn" type="button">Effacer</button>
 </div>
@@ -253,11 +267,11 @@
     {
       id: "pieces",
       titre: "Utilisation des bonnes pièces",
-      max: 6,
+      max: 8,
       saisie: "compteurs",
       items: ["Pièce manquante", "Mauvaise pièce", "Pièce en trop"],
-      bareme: [6, 4.5, 3, 1.5, 0],
-      penalite: { label: "Mauvais modèle de l'ordinateur", points: 3 }
+      bareme: [8, 6, 4, 2, 0],
+      penalite: { label: "Mauvais modèle de l'ordinateur", points: 4 }
     },
     {
       id: "ports",
@@ -290,19 +304,20 @@
         "Vis manquante"
       ],
       bareme: [3, 2.5, 2, 1.5, 1, 0.5, 0]
+    },
+    {
+      id: "ram",
+      titre: "Mémoire vive",
+      max: 3,
+      saisie: "cases",
+      items: [
+        "Configuration non valide",
+        "Capacité totale demandée non respectée",
+        "Demandes spécifiques non respectées"
+      ],
+      bareme: [3, 1.5, 0]
     }
   ];
-
-  const RAM = {
-    id: "ram",
-    titre: "Mémoire vive",
-    max: 3,
-    items: [
-      "Configuration valide",
-      "Capacité totale demandée respectée",
-      "Demandes spécifiques respectées"
-    ]
-  };
 
   const PENALITES_GLOBALES = [
     {
@@ -329,7 +344,7 @@
     }
   ];
 
-  const TOTAL_MAX = CRITERES.reduce((s, c) => s + c.max, 0) + RAM.max; // 18
+  const TOTAL_MAX = CRITERES.reduce((s, c) => s + c.max, 0); // 20
 
   // --- Construction du DOM ----------------------------------------------
 
@@ -392,34 +407,6 @@
     app.appendChild(section);
   }
 
-  function buildRam(r) {
-    const section = document.createElement("section");
-    section.className = "critere";
-    section.dataset.critere = r.id;
-
-    const header = document.createElement("div");
-    header.className = "critere-header";
-    header.innerHTML =
-      "<h2>" + r.titre + " <span style='color:var(--text-muted);font-weight:400;font-size:0.85em;'>(" + r.max + " pts)</span></h2>" +
-      "<div class='critere-score' data-score-for='" + r.id + "'>" + r.max + " / " + r.max + "</div>";
-    section.appendChild(header);
-
-    const list = document.createElement("div");
-    list.className = "item-list";
-
-    r.items.forEach((text, i) => {
-      const lbl = document.createElement("label");
-      lbl.className = "item";
-      lbl.innerHTML =
-        "<input type='checkbox' data-critere='" + r.id + "' data-role='ram-item' data-index='" + i + "'>" +
-        "<span class='item-text'>" + text + "</span>";
-      list.appendChild(lbl);
-    });
-
-    section.appendChild(list);
-    app.appendChild(section);
-  }
-
   function buildPenalites(list) {
     const section = document.createElement("section");
     section.className = "bloc-penalites";
@@ -468,7 +455,6 @@
   }
 
   CRITERES.forEach(buildCritere);
-  buildRam(RAM);
   buildPenalites(PENALITES_GLOBALES);
 
   // --- Calcul -------------------------------------------------------------
@@ -525,30 +511,6 @@
       total += points;
     });
 
-    // Mémoire vive
-    (function () {
-      const section = app.querySelector("[data-critere='" + RAM.id + "']");
-      const checks = section.querySelectorAll("[data-role='ram-item']");
-      const configValide = checks[0].checked;
-      const capaciteOk = checks[1].checked;
-      const demandesOk = checks[2].checked;
-
-      let points;
-      if (configValide && capaciteOk && demandesOk) {
-        points = 3;
-      } else if (configValide || capaciteOk) {
-        points = 1;
-      } else {
-        points = 0;
-      }
-
-      const scoreEl = section.querySelector("[data-score-for='" + RAM.id + "']");
-      scoreEl.textContent = formatPts(points) + " / " + RAM.max;
-      scoreEl.className = "critere-score " + scoreClass(points, RAM.max);
-
-      total += points;
-    })();
-
     // Pénalités globales
     let penaliteGlobale = 0;
     PENALITES_GLOBALES.forEach((p) => {
@@ -568,10 +530,17 @@
     total = clamp(total - penaliteGlobale, 0, TOTAL_MAX);
 
     const totalEl = document.getElementById("total-value");
-    totalEl.textContent = formatPts(total) + " / " + TOTAL_MAX;
+    const totalMainEl = document.getElementById("total-main");
+    const totalPercentEl = document.getElementById("total-percent");
+    const pct = TOTAL_MAX > 0 ? (total / TOTAL_MAX) * 100 : 0;
+    totalMainEl.textContent = formatPts(total) + " / " + TOTAL_MAX;
+    totalPercentEl.textContent = pct.toFixed(1) + " %";
     totalEl.style.color =
-      total >= TOTAL_MAX * 0.99 ? "var(--ok)" :
-      total >= TOTAL_MAX * 0.5 ? "var(--warn)" : "var(--bad)";
+      total >= 19 ? "var(--ok)" :
+      total >= 16 ? "var(--grade-yellow)" :
+      total >= 13.5 ? "var(--grade-orange)" : "var(--bad)";
+    document.getElementById("total-mention").textContent =
+      total >= TOTAL_MAX ? "Excellent" : total < 12 ? "Échec" : "";
   }
 
   // --- Écouteurs ------------------------------------------------------------
